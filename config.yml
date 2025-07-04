@@ -3,3 +3,22 @@ db_path: reopal.db
 maintenance:
   quota: "2TB"
   dry_run: true
+
+# Web viewer configuration
+web_viewer:
+  host: "0.0.0.0"
+  port: 8080
+  auth:
+    enabled: false
+    session_timeout: "24h"
+    admin_users: ["admin"]
+  thumbnails:
+    enabled: true
+    cache_dir: "./thumbnails"
+    quality: "medium"
+  max_concurrent_streams: 10
+  cache_size: "1GB"
+  features:
+    real_time_updates: true
+    bulk_operations: true
+    mobile_optimized: true

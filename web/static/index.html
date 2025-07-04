@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReoPal Web Viewer</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1 class="logo">
+                    <span class="logo-icon">📹</span>
+                    ReoPal Web Viewer
+                </h1>
+                <nav class="nav">
+                    <button class="nav-button active" data-view="dashboard">Dashboard</button>
+                    <button class="nav-button" data-view="videos">Videos</button>
+                    <button class="nav-button" data-view="cameras">Cameras</button>
+                    <button class="nav-button" data-view="search">Search</button>
+                </nav>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Dashboard View -->
+            <div class="view active" id="dashboard-view">
+                <div class="dashboard">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon">🎬</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="total-videos">-</div>
+                                <div class="stat-label">Total Videos</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">📷</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="total-cameras">-</div>
+                                <div class="stat-label">Active Cameras</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">💾</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="total-storage">-</div>
+                                <div class="stat-label">Storage Used</div>
+                            </div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-icon">🕒</div>
+                            <div class="stat-content">
+                                <div class="stat-value" id="last-update">-</div>
+                                <div class="stat-label">Last Updated</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-section">
+                        <h2>Recent Recordings</h2>
+                        <div class="video-grid" id="recent-videos">
+                            <!-- Videos will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Videos View -->
+            <div class="view" id="videos-view">
+                <div class="videos-page">
+                    <div class="page-header">
+                        <h2>All Videos</h2>
+                        <div class="filters">
+                            <select class="filter-select" id="camera-filter">
+                                <option value="">All Cameras</option>
+                            </select>
+                            <input type="date" class="filter-date" id="date-from" placeholder="From Date">
+                            <input type="date" class="filter-date" id="date-to" placeholder="To Date">
+                        </div>
+                    </div>
+                    <div class="video-grid" id="videos-grid">
+                        <!-- Videos will be loaded here -->
+                    </div>
+                    <div class="pagination" id="pagination">
+                        <!-- Pagination controls will be added here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cameras View -->
+            <div class="view" id="cameras-view">
+                <div class="cameras-page">
+                    <h2>Camera Overview</h2>
+                    <div class="cameras-grid" id="cameras-grid">
+                        <!-- Cameras will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search View -->
+            <div class="view" id="search-view">
+                <div class="search-page">
+                    <div class="search-header">
+                        <h2>Search Videos</h2>
+                        <div class="search-form">
+                            <input type="text" class="search-input" id="search-input" placeholder="Search videos...">
+                            <button class="search-button" id="search-button">Search</button>
+                        </div>
+                    </div>
+                    <div class="search-results">
+                        <div class="video-grid" id="search-results-grid">
+                            <!-- Search results will be loaded here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Video Player Modal -->
+        <div class="modal" id="video-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-title">Video Player</h3>
+                    <button class="modal-close" id="modal-close">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <video id="video-player" controls width="100%">
+                        Your browser does not support the video tag.
+                    </video>
+                    <div class="video-info" id="video-info">
+                        <!-- Video metadata will be shown here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="spinner" id="spinner">
+            <div class="spinner-circle"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

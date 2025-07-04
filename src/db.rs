@@ -1,4 +1,5 @@
 use crate::models::VideoRecording;
+use chrono::{DateTime, Utc};
 use rusqlite::{Connection, Result};
 
 /// Initializes the database and creates the 'videos' table if it doesn't exist.
@@ -27,8 +28,8 @@ pub fn insert_record(conn: &Connection, record: &VideoRecording) -> Result<usize
             &record.file_path,
             &record.camera_name,
             &record.date,
-            &record.start_time,
-            &record.end_time,
+            &record.start_time.to_rfc3339(),
+            &record.end_time.to_rfc3339(),
             &record.file_size,
             &record.deleted,
         ),
@@ -44,12 +45,33 @@ pub fn get_all_non_deleted_recordings(conn: &Connection) -> Result<Vec<VideoReco
          ORDER BY date, start_time",
     )?;
     let record_iter = stmt.query_map([], |row| {
+        let start_time_str: String = row.get(3)?;
+        let end_time_str: String = row.get(4)?;
+        let start_time = DateTime::parse_from_rfc3339(&start_time_str)
+            .map_err(|_| {
+                rusqlite::Error::InvalidColumnType(
+                    3,
+                    "start_time".to_string(),
+                    rusqlite::types::Type::Text,
+                )
+            })?
+            .with_timezone(&Utc);
+        let end_time = DateTime::parse_from_rfc3339(&end_time_str)
+            .map_err(|_| {
+                rusqlite::Error::InvalidColumnType(
+                    4,
+                    "end_time".to_string(),
+                    rusqlite::types::Type::Text,
+                )
+            })?
+            .with_timezone(&Utc);
+
         Ok(VideoRecording {
             file_path: row.get(0)?,
             camera_name: row.get(1)?,
             date: row.get(2)?,
-            start_time: row.get(3)?,
-            end_time: row.get(4)?,
+            start_time,
+            end_time,
             file_size: row.get(5)?,
             deleted: row.get(6)?,
         })

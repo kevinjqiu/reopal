@@ -1,8 +1,10 @@
 use crate::db;
 use crate::models::VideoRecording;
+use chrono::{DateTime, TimeZone, Utc};
 use rayon::prelude::*;
 use rusqlite::{Connection, Result};
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 use walkdir::WalkDir;
 
 /// Scans the given directory in parallel, parses file information, and inserts it into the database.
@@ -50,15 +52,32 @@ fn parse_path(path: &Path) -> Option<VideoRecording> {
     }
 
     let camera_name = parts[0].to_string();
-    let start_time = parts[2].to_string();
-    let end_time = parts[3].to_string();
+    let filename_start_time = parts[2];
+    let filename_end_time = parts[3];
 
-    if start_time.len() != 6 || end_time.len() != 6 {
+    if filename_start_time.len() != 6 || filename_end_time.len() != 6 {
         return None;
     }
 
+    // Calculate duration from filename times
+    let start_seconds = parse_time_to_seconds(filename_start_time)?;
+    let end_seconds = parse_time_to_seconds(filename_end_time)?;
+    let duration_seconds = if end_seconds >= start_seconds {
+        end_seconds - start_seconds
+    } else {
+        // Handle case where end time is past midnight (next day)
+        (24 * 3600 - start_seconds) + end_seconds
+    };
+
     let metadata = std::fs::metadata(path).ok()?;
     let file_size = metadata.len();
+
+    // Use file creation time as end_time
+    let created_time = metadata.created().ok()?;
+    let end_time: DateTime<Utc> = created_time.into();
+
+    // Calculate start_time as end_time minus duration
+    let start_time = end_time - chrono::Duration::seconds(duration_seconds as i64);
 
     Some(VideoRecording {
         camera_name,
@@ -69,4 +88,21 @@ fn parse_path(path: &Path) -> Option<VideoRecording> {
         file_size,
         deleted: false,
     })
+}
+
+/// Parse time string in HHMMSS format to seconds since midnight
+fn parse_time_to_seconds(time_str: &str) -> Option<u32> {
+    if time_str.len() != 6 {
+        return None;
+    }
+
+    let hours: u32 = time_str[0..2].parse().ok()?;
+    let minutes: u32 = time_str[2..4].parse().ok()?;
+    let seconds: u32 = time_str[4..6].parse().ok()?;
+
+    if hours >= 24 || minutes >= 60 || seconds >= 60 {
+        return None;
+    }
+
+    Some(hours * 3600 + minutes * 60 + seconds)
 }

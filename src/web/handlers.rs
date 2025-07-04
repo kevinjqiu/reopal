@@ -4,6 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
@@ -56,6 +57,11 @@ pub struct SearchRequest {
     pub date_to: Option<String>,
 }
 
+/// Helper function to format DateTime to HHMMSS string
+fn format_time_to_string(datetime: &DateTime<Utc>) -> String {
+    datetime.format("%H%M%S").to_string()
+}
+
 /// List all videos with pagination and filtering
 pub async fn list_videos(
     State(state): State<AppState>,
@@ -97,12 +103,33 @@ pub async fn list_videos(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let video_iter = stmt
         .query_map(rusqlite::params_from_iter(conditions.iter()), |row| {
+            let start_time_str: String = row.get(3)?;
+            let end_time_str: String = row.get(4)?;
+            let start_time = DateTime::parse_from_rfc3339(&start_time_str)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        3,
+                        "start_time".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .with_timezone(&Utc);
+            let end_time = DateTime::parse_from_rfc3339(&end_time_str)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        4,
+                        "end_time".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .with_timezone(&Utc);
+
             Ok(VideoResponse {
                 id: generate_video_id(row.get::<_, String>(0)?),
                 camera_name: row.get(1)?,
                 date: row.get(2)?,
-                start_time: row.get(3)?,
-                end_time: row.get(4)?,
+                start_time: format_time_to_string(&start_time),
+                end_time: format_time_to_string(&end_time),
                 file_size: row.get(5)?,
                 file_path: row.get(0)?,
                 deleted: row.get(6)?,
@@ -141,12 +168,33 @@ pub async fn get_video(
     let file_path = decode_video_id(id);
     let video = stmt
         .query_row([&file_path], |row| {
+            let start_time_str: String = row.get(3)?;
+            let end_time_str: String = row.get(4)?;
+            let start_time = DateTime::parse_from_rfc3339(&start_time_str)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        3,
+                        "start_time".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .with_timezone(&Utc);
+            let end_time = DateTime::parse_from_rfc3339(&end_time_str)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        4,
+                        "end_time".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .with_timezone(&Utc);
+
             Ok(VideoResponse {
                 id: generate_video_id(row.get::<_, String>(0)?),
                 camera_name: row.get(1)?,
                 date: row.get(2)?,
-                start_time: row.get(3)?,
-                end_time: row.get(4)?,
+                start_time: format_time_to_string(&start_time),
+                end_time: format_time_to_string(&end_time),
                 file_size: row.get(5)?,
                 file_path: row.get(0)?,
                 deleted: row.get(6)?,
@@ -262,12 +310,33 @@ pub async fn search_videos(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let video_iter = stmt
         .query_map(rusqlite::params_from_iter(conditions.iter()), |row| {
+            let start_time_str: String = row.get(3)?;
+            let end_time_str: String = row.get(4)?;
+            let start_time = DateTime::parse_from_rfc3339(&start_time_str)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        3,
+                        "start_time".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .with_timezone(&Utc);
+            let end_time = DateTime::parse_from_rfc3339(&end_time_str)
+                .map_err(|_| {
+                    rusqlite::Error::InvalidColumnType(
+                        4,
+                        "end_time".to_string(),
+                        rusqlite::types::Type::Text,
+                    )
+                })?
+                .with_timezone(&Utc);
+
             Ok(VideoResponse {
                 id: generate_video_id(row.get::<_, String>(0)?),
                 camera_name: row.get(1)?,
                 date: row.get(2)?,
-                start_time: row.get(3)?,
-                end_time: row.get(4)?,
+                start_time: format_time_to_string(&start_time),
+                end_time: format_time_to_string(&end_time),
                 file_size: row.get(5)?,
                 file_path: row.get(0)?,
                 deleted: row.get(6)?,

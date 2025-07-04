@@ -1,10 +1,11 @@
 use clap::Parser;
 use reopal::cli::{Args, Commands};
 use reopal::db;
+use reopal::maintenance;
 use reopal::scanner;
 use rusqlite::{Connection, Result};
 
-fn main() -> Result<()> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     match args.command {
@@ -13,6 +14,14 @@ fn main() -> Result<()> {
             db::init_db(&conn)?;
             scanner::scan_directory(&import_args.directory, &conn)?;
             println!("Import complete.");
+        }
+        Commands::Maintenance(maint_args) => {
+            let conn = Connection::open(&maint_args.db_path)?;
+            db::init_db(&conn)?;
+            println!("Running import before maintenance...");
+            scanner::scan_directory(&maint_args.directory, &conn)?;
+            println!("Import complete. Running maintenance...");
+            maintenance::run_maintenance(&conn, &maint_args.quota, maint_args.dry_run)?;
         }
     }
 

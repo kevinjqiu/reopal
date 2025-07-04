@@ -60,6 +60,16 @@ class ReoPalApp {
                 this.closeModal();
             }
         });
+
+        // Refresh button
+        document.getElementById('refresh-button').addEventListener('click', () => {
+            this.refreshMetadata();
+        });
+
+        // Notification close
+        document.getElementById('notification-close').addEventListener('click', () => {
+            this.hideNotification();
+        });
     }
 
     switchView(view) {
@@ -377,7 +387,77 @@ class ReoPalApp {
     showError(message) {
         // Simple error display - could be enhanced with a proper notification system
         console.error(message);
-        alert(message);
+        this.showNotification(message, 'error');
+    }
+
+    async refreshMetadata() {
+        const refreshButton = document.getElementById('refresh-button');
+        const refreshIcon = refreshButton.querySelector('.refresh-icon');
+        const refreshText = refreshButton.querySelector('.refresh-text');
+
+        // Set loading state
+        refreshButton.disabled = true;
+        refreshButton.classList.add('loading');
+        refreshText.textContent = 'Refreshing...';
+
+        try {
+            const response = await this.apiCall('/api/import', {
+                method: 'POST'
+            });
+
+            if (response.status === 'success') {
+                this.showNotification('Video metadata refreshed successfully!', 'success');
+
+                // Refresh current view data
+                switch (this.currentView) {
+                    case 'dashboard':
+                        this.loadDashboard();
+                        break;
+                    case 'videos':
+                        this.loadVideos(this.currentPage);
+                        break;
+                    case 'cameras':
+                        this.loadCameras();
+                        break;
+                }
+            } else {
+                this.showNotification(response.message || 'Refresh failed', 'error');
+            }
+        } catch (error) {
+            console.error('Error refreshing metadata:', error);
+            this.showNotification('Failed to refresh metadata', 'error');
+        } finally {
+            // Reset button state
+            refreshButton.disabled = false;
+            refreshButton.classList.remove('loading');
+            refreshText.textContent = 'Refresh';
+        }
+    }
+
+    showNotification(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        const icon = document.getElementById('notification-icon');
+        const messageEl = document.getElementById('notification-message');
+
+        // Set content
+        messageEl.textContent = message;
+        icon.textContent = type === 'success' ? '✅' : '❌';
+
+        // Set type
+        notification.className = `notification ${type}`;
+
+        // Show notification
+        notification.classList.add('show');
+
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            this.hideNotification();
+        }, 5000);
+    }
+
+    hideNotification() {
+        const notification = document.getElementById('notification');
+        notification.classList.remove('show');
     }
 
     // Utility functions
@@ -417,6 +497,12 @@ const app = new ReoPalApp();
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
         app.closeModal();
+    }
+
+    // Ctrl+R or F5 for refresh (prevent default browser refresh)
+    if ((e.ctrlKey && e.key === 'r') || e.key === 'F5') {
+        e.preventDefault();
+        app.refreshMetadata();
     }
 });
 

@@ -76,6 +76,44 @@ body {
     color: #0d1117;
 }
 
+.refresh-button {
+    background: #238636;
+    border: 1px solid #2ea043;
+    color: #fff;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.refresh-button:hover {
+    background: #2ea043;
+    transform: translateY(-1px);
+}
+
+.refresh-button:active {
+    transform: translateY(0);
+}
+
+.refresh-button:disabled {
+    background: #6e7681;
+    border-color: #6e7681;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.refresh-button.loading .refresh-icon {
+    animation: spin 1s linear infinite;
+}
+
+.refresh-button.loading .refresh-text {
+    opacity: 0.7;
+}
+
 /* Main Content */
 .main {
     flex: 1;
@@ -366,6 +404,76 @@ body {
     }
 }
 
+/* Notification Toast */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 3000;
+    transform: translateX(400px);
+    transition: transform 0.3s ease-in-out;
+    max-width: 400px;
+}
+
+.notification.show {
+    transform: translateX(0);
+}
+
+.notification-content {
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.notification.success .notification-content {
+    border-color: #2ea043;
+    background: #0d1821;
+}
+
+.notification.error .notification-content {
+    border-color: #f85149;
+    background: #1e1214;
+}
+
+.notification-icon {
+    font-size: 1.2rem;
+    flex-shrink: 0;
+}
+
+.notification.success .notification-icon {
+    color: #2ea043;
+}
+
+.notification.error .notification-icon {
+    color: #f85149;
+}
+
+.notification-message {
+    flex: 1;
+    color: #e6edf3;
+    font-size: 0.9rem;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: #8b949e;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 0.5rem;
+    flex-shrink: 0;
+}
+
+.notification-close:hover {
+    color: #e6edf3;
+}
+
 /* Pagination */
 .pagination {
     display: flex;
@@ -406,6 +514,16 @@ body {
         gap: 1rem;
     }
 
+    .nav {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .refresh-button {
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+
     .main {
         padding: 1rem;
     }
@@ -439,6 +557,18 @@ body {
     .modal-content {
         width: 95%;
         margin: 1% auto;
+    }
+
+    .notification {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        max-width: none;
+        transform: translateY(-100px);
+    }
+
+    .notification.show {
+        transform: translateY(0);
     }
 }
 

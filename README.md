@@ -141,6 +141,7 @@ Once you start the web viewer with `reopal web`, you can access it at `http://lo
 - **Cameras**: View camera-specific statistics and recordings
 - **Search**: Find specific videos using text search and date/time filters
 - **Video Player**: Stream videos directly in your browser with seek controls
+- **Manual Refresh**: Update video metadata on-demand with the refresh button or Ctrl+R/F5
 
 ### API Endpoints:
 - `GET /api/videos` - List videos with pagination and filtering
@@ -148,6 +149,7 @@ Once you start the web viewer with `reopal web`, you can access it at `http://lo
 - `GET /api/videos/:id/stream` - Stream video file
 - `POST /api/videos/search` - Search videos
 - `GET /api/cameras` - List cameras with statistics
+- `POST /api/import` - Manually refresh video metadata
 - `GET /api/health` - Health check endpoint
 
 ## Database Schema

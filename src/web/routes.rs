@@ -12,5 +12,6 @@ pub fn create_api_routes() -> Router<AppState> {
         .route("/videos/:id/stream", get(handlers::stream_video))
         .route("/videos/search", post(handlers::search_videos))
         .route("/cameras", get(handlers::list_cameras))
+        .route("/import", post(handlers::manual_import))
         .route("/health", get(handlers::health_check))
 }

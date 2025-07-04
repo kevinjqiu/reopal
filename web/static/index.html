@@ -23,6 +23,10 @@
                     <button class="nav-button" data-view="videos">Videos</button>
                     <button class="nav-button" data-view="cameras">Cameras</button>
                     <button class="nav-button" data-view="search">Search</button>
+                    <button class="refresh-button" id="refresh-button" title="Refresh video metadata">
+                        <span class="refresh-icon">🔄</span>
+                        <span class="refresh-text">Refresh</span>
+                    </button>
                 </nav>
             </div>
         </header>
@@ -144,6 +148,15 @@
         <!-- Loading Spinner -->
         <div class="spinner" id="spinner">
             <div class="spinner-circle"></div>
+        </div>
+
+        <!-- Notification Toast -->
+        <div class="notification" id="notification">
+            <div class="notification-content">
+                <span class="notification-icon" id="notification-icon"></span>
+                <span class="notification-message" id="notification-message"></span>
+                <button class="notification-close" id="notification-close">&times;</button>
+            </div>
         </div>
     </div>
 

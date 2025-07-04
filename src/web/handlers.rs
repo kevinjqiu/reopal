@@ -318,6 +318,39 @@ pub async fn health_check() -> Json<HashMap<String, String>> {
     Json(response)
 }
 
+/// Manual import/refresh endpoint
+pub async fn manual_import(
+    State(state): State<AppState>,
+) -> Result<Json<HashMap<String, String>>, StatusCode> {
+    let db = state
+        .db
+        .lock()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Release the database lock before calling scanner
+    drop(db);
+
+    // Call the scanner function to import new videos
+    match crate::scanner::scan_directory(&state.config.directory, &*state.db.lock().unwrap()) {
+        Ok(()) => {
+            let mut response = HashMap::new();
+            response.insert("status".to_string(), "success".to_string());
+            response.insert(
+                "message".to_string(),
+                "Video metadata refreshed successfully".to_string(),
+            );
+            Ok(Json(response))
+        }
+        Err(e) => {
+            eprintln!("Import error: {}", e);
+            let mut response = HashMap::new();
+            response.insert("status".to_string(), "error".to_string());
+            response.insert("message".to_string(), format!("Import failed: {}", e));
+            Ok(Json(response))
+        }
+    }
+}
+
 // Helper functions
 fn generate_video_id(file_path: String) -> String {
     use base64::prelude::*;

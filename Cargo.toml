@@ -1,0 +1,11 @@
+[package]
+name = "reopal"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.4", features = ["derive"] }
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+walkdir = "2.5.0"
+rayon = "1.10.0"
+

@@ -3,10 +3,12 @@ use reopal::cli::{Args, Commands, Config};
 use reopal::db;
 use reopal::maintenance;
 use reopal::scanner;
+use reopal::web::{AppState, WebServer};
 use rusqlite::{Connection, Result};
 use std::fs;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
     let config_str = fs::read_to_string(&args.config)?;
     let config: Config = serde_yaml::from_str(&config_str)?;
@@ -29,6 +31,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 println!("Maintenance configuration not found in config file.");
             }
+        }
+        Commands::Web => {
+            println!("Starting web viewer...");
+            let default_config = Default::default();
+            let web_config = config.web_viewer.as_ref().unwrap_or(&default_config);
+            let host = web_config.host.clone();
+            let port = web_config.port;
+            let state = AppState::new(conn, config);
+            let server = WebServer::new(state);
+            server.start(&host, port).await?;
         }
     }
 

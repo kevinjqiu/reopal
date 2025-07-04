@@ -1,9 +1,20 @@
-use clap::Parser;
+use clap::{Parser, Subcommand};
 
-/// A CLI tool to process ReoLink video files and store them in a database.
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    #[command(subcommand)]
+    pub command: Commands,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum Commands {
+    /// Import video files from a directory.
+    Import(ImportArgs),
+}
+
+#[derive(Parser, Debug)]
+pub struct ImportArgs {
     /// The path to the ReoLink video directory.
     #[arg(short, long)]
     pub directory: String,

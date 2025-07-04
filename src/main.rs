@@ -1,18 +1,20 @@
-mod cli;
-mod db;
-mod models;
-mod scanner;
-
 use clap::Parser;
+use reopal::cli::{Args, Commands};
+use reopal::db;
+use reopal::scanner;
 use rusqlite::{Connection, Result};
 
 fn main() -> Result<()> {
-    let args = cli::Args::parse();
-    let conn = Connection::open(&args.db_path)?;
+    let args = Args::parse();
 
-    db::init_db(&conn)?;
-    scanner::scan_directory(&args.directory, &conn)?;
+    match args.command {
+        Commands::Import(import_args) => {
+            let conn = Connection::open(&import_args.db_path)?;
+            db::init_db(&conn)?;
+            scanner::scan_directory(&import_args.directory, &conn)?;
+            println!("Import complete.");
+        }
+    }
 
-    println!("Database updated successfully.");
     Ok(())
 }

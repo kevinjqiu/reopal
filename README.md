@@ -9,6 +9,7 @@ ReoPal is a command-line interface (CLI) tool designed to manage and maintain an
 - **Idempotent Imports**: Prevents duplicate entries in the database, so you can run the import command multiple times without creating redundant data.
 - **Disk Quota Management**: A `maintenance` mode helps you keep your video archive from growing too large by deleting the oldest files to stay within a specified quota.
 - **Dry Run Mode**: Safely preview which files would be deleted by the maintenance command without actually removing them.
+- **Centralized Configuration**: Uses a single YAML file to define all parameters for the `import` and `maintenance` commands.
 - **Modular Codebase**: Built with a clean, modular structure in Rust for maintainability and future expansion.
 
 ## Building the Project
@@ -29,51 +30,59 @@ To build the project, you will need to have the [Rust toolchain](https://www.rus
 
 ## Usage
 
-ReoPal is operated via subcommands.
+ReoPal is operated via `import` and `maintenance` subcommands. All parameters for these commands are sourced from a central YAML configuration file.
 
-### `import`
-
-The `import` subcommand scans a directory and adds the metadata of any new video files to the database.
-
-**Usage:**
+**Command:**
 ```bash
-reopal import --directory <path-to-videos> [--db-path <path-to-db>]
+reopal [--config <path-to-config.yml>] <subcommand>
 ```
 
-**Arguments:**
-- `-d`, `--directory <path>`: The absolute path to the ReoLink video directory.
-- `-b`, `--db-path <path>`: (Optional) The path to the SQLite database file. Defaults to `reopal.db` in the current directory.
+**Global Argument:**
+- `-c`, `--config <path>`: Path to the YAML configuration file. Defaults to `config.yml`.
 
-**Example:**
-```bash
-./target/debug/reopal import -d /mnt/reolink/videos
+### Subcommands
+
+- **`import`**: Scans the video directory and indexes new files.
+- **`maintenance`**: First, runs an import to update the database, then enforces the disk quota defined in the configuration.
+
+### Configuration File
+
+All settings are managed in a single YAML file (e.g., `config.yml`).
+
+**Example Configuration:**
+```yaml
+# config.yml
+
+# The root directory where your ReoLink videos are stored.
+directory: "/mnt/reolink/videos"
+
+# The path to the SQLite database file.
+db_path: "reopal.db"
+
+# Configuration for the 'maintenance' subcommand.
+# This section is optional if you only plan to use the 'import' command.
+maintenance:
+  # The disk space quota (e.g., "100GB", "500MB", "2.5TB").
+  quota: "50GB"
+  # If true, the command will only print the files that would be deleted.
+  dry_run: true
 ```
 
-### `maintenance`
+### Running the Commands
 
-The `maintenance` subcommand first runs an import to ensure the database is up-to-date, then checks the total size of all non-deleted videos against a specified quota. If the total size exceeds the quota, it will delete the oldest video files until the total size is back within the limit.
-
-**Usage:**
+**Import videos:**
 ```bash
-reopal maintenance --directory <path-to-videos> --quota <size> [--db-path <path>] [--dry-run]
+./target/debug/reopal import
 ```
 
-**Arguments:**
-- `-d`, `--directory <path>`: The path to the ReoLink video directory.
-- `-q`, `--quota <size>`: The disk space quota (e.g., "10GB", "500MB", "2.5TB").
-- `-b`, `--db-path <path>`: (Optional) The path to the SQLite database file. Defaults to `reopal.db`.
-- `--dry-run`: (Flag) If included, the command will only print the files that would be deleted without performing any actual file deletion or database updates.
-
-**Examples:**
-
-**Perform maintenance with a 100GB quota:**
+**Run maintenance:**
 ```bash
-./target/debug/reopal maintenance -d /mnt/reolink/videos -q 100GB
+./target/debug/reopal maintenance
 ```
 
-**Perform a dry run to see what would be deleted with a 50GB quota:**
+**Use a custom configuration file:**
 ```bash
-./target/debug/reopal maintenance -d /mnt/reolink/videos -q 50GB --dry-run
+./target/debug/reopal --config /path/to/my/config.yml maintenance
 ```
 
 ## Database Schema

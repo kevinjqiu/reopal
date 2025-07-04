@@ -9,5 +9,8 @@ rusqlite = { version = "0.31.0", features = ["bundled"] }
 walkdir = "2.5.0"
 rayon = "1.10.0"
 byte-unit = "5.1.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9"
+
 
 

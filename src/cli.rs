@@ -1,46 +1,35 @@
-use clap::{Parser, Subcommand};
+use clap::Parser;
+use serde::Deserialize;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 pub struct Args {
+    /// Path to the YAML configuration file.
+    #[arg(short, long, default_value = "config.yml")]
+    pub config: String,
+
     #[command(subcommand)]
     pub command: Commands,
 }
 
-#[derive(Subcommand, Debug)]
+#[derive(Parser, Debug)]
 pub enum Commands {
     /// Import video files from a directory.
-    Import(ImportArgs),
+    Import,
     /// Run maintenance to enforce disk quota.
-    Maintenance(MaintenanceArgs),
+    Maintenance,
 }
 
-#[derive(Parser, Debug)]
-pub struct ImportArgs {
-    /// The path to the ReoLink video directory.
-    #[arg(short, long)]
+#[derive(Debug, Deserialize)]
+pub struct Config {
     pub directory: String,
-
-    /// The path to the SQLite database file.
-    #[arg(short = 'b', long, default_value = "reopal.db")]
     pub db_path: String,
+    pub maintenance: Option<MaintenanceConfig>,
 }
 
-#[derive(Parser, Debug)]
-pub struct MaintenanceArgs {
-    /// The path to the ReoLink video directory to scan before maintenance.
-    #[arg(short, long)]
-    pub directory: String,
-
-    /// The disk space quota (e.g., "10GB", "500MB").
-    #[arg(short, long)]
+#[derive(Debug, Deserialize)]
+pub struct MaintenanceConfig {
     pub quota: String,
-
-    /// The path to the SQLite database file.
-    #[arg(short = 'b', long, default_value = "reopal.db")]
-    pub db_path: String,
-
-    /// If set, the command will only print the actions to be taken.
-    #[arg(long)]
+    #[serde(default)]
     pub dry_run: bool,
 }

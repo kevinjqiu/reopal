@@ -1,0 +1,5 @@
+directory: /mnt/reolink
+db_path: reopal.db
+maintenance:
+  quota: "2TB"
+  dry_run: true

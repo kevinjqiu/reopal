@@ -22,6 +22,7 @@
                     <button class="nav-button active" data-view="dashboard">Dashboard</button>
                     <button class="nav-button" data-view="videos">Videos</button>
                     <button class="nav-button" data-view="cameras">Cameras</button>
+                    <button class="nav-button" data-view="timeline">Timeline</button>
                     <button class="nav-button" data-view="search">Search</button>
                     <button class="refresh-button" id="refresh-button" title="Refresh video metadata">
                         <span class="refresh-icon">🔄</span>
@@ -104,6 +105,57 @@
                     <h2>Camera Overview</h2>
                     <div class="cameras-grid" id="cameras-grid">
                         <!-- Cameras will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline View -->
+            <div class="view" id="timeline-view">
+                <div class="timeline-page">
+                    <div class="timeline-header">
+                        <h2>Camera Timeline</h2>
+                        <div class="timeline-controls">
+                            <select class="timeline-camera-select" id="timeline-camera-select">
+                                <option value="">Select a camera...</option>
+                            </select>
+                            <input type="date" class="timeline-date-input" id="timeline-date-input">
+                            <button class="timeline-load-button" id="timeline-load-button">Load Timeline</button>
+                        </div>
+                    </div>
+
+                    <div class="timeline-container" id="timeline-container">
+                        <div class="timeline-info" id="timeline-info">
+                            <p>Select a camera and date to view the timeline</p>
+                        </div>
+
+                        <!-- Timeline visualization -->
+                        <div class="timeline-visualization" id="timeline-visualization" style="display: none;">
+                            <div class="timeline-header-bar">
+                                <div class="timeline-title" id="timeline-title"></div>
+                                <div class="timeline-stats" id="timeline-stats"></div>
+                            </div>
+
+                            <!-- 24-hour timeline -->
+                            <div class="timeline-bar-container">
+                                <div class="timeline-hours">
+                                    <!-- Hour markers will be generated here -->
+                                </div>
+                                <div class="timeline-bar" id="timeline-bar">
+                                    <!-- Video segments will be generated here -->
+                                </div>
+                            </div>
+
+                            <div class="timeline-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color video-segment"></div>
+                                    <span>Video Recording</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color gap-segment"></div>
+                                    <span>No Recording</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

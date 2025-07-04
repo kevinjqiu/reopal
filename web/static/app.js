@@ -70,6 +70,17 @@ class ReoPalApp {
         document.getElementById('notification-close').addEventListener('click', () => {
             this.hideNotification();
         });
+
+        // Timeline controls
+        document.getElementById('timeline-load-button').addEventListener('click', () => {
+            this.loadTimelineForCameraAndDate();
+        });
+
+        // Set default date to today
+        const dateInput = document.getElementById('timeline-date-input');
+        if (dateInput) {
+            dateInput.valueAsDate = new Date();
+        }
     }
 
     switchView(view) {
@@ -97,6 +108,9 @@ class ReoPalApp {
                 break;
             case 'cameras':
                 this.loadCameras();
+                break;
+            case 'timeline':
+                this.loadTimelineView();
                 break;
             case 'search':
                 // Search view is reactive, no initial load needed
@@ -419,6 +433,9 @@ class ReoPalApp {
                     case 'cameras':
                         this.loadCameras();
                         break;
+                    case 'timeline':
+                        // Timeline view refreshes when user reloads manually
+                        break;
                 }
             } else {
                 this.showNotification(response.message || 'Refresh failed', 'error');
@@ -487,6 +504,176 @@ class ReoPalApp {
         const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
         const i = Math.floor(Math.log(bytes) / Math.log(k));
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    // Timeline functionality
+    loadTimelineView() {
+        // Load camera list if not already loaded
+        this.loadCameraList();
+    }
+
+    async loadCameraList() {
+        try {
+            const cameras = await this.apiCall('/api/cameras');
+            const select = document.getElementById('timeline-camera-select');
+
+            // Clear existing options except the first one
+            select.innerHTML = '<option value="">Select a camera...</option>';
+
+            cameras.forEach(camera => {
+                const option = document.createElement('option');
+                option.value = camera.name;
+                option.textContent = `${camera.name} (${camera.video_count} videos)`;
+                select.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading cameras:', error);
+            this.showError('Error loading cameras');
+        }
+    }
+
+    async loadTimelineForCameraAndDate() {
+        const cameraSelect = document.getElementById('timeline-camera-select');
+        const dateInput = document.getElementById('timeline-date-input');
+        const camera = cameraSelect.value;
+        const date = dateInput.value;
+
+        if (!camera || !date) {
+            this.showError('Please select a camera and date');
+            return;
+        }
+
+        const loadButton = document.getElementById('timeline-load-button');
+        const timelineInfo = document.getElementById('timeline-info');
+        const timelineVisualization = document.getElementById('timeline-visualization');
+
+        // Show loading state
+        loadButton.disabled = true;
+        loadButton.textContent = 'Loading...';
+        timelineInfo.style.display = 'block';
+        timelineVisualization.style.display = 'none';
+        timelineInfo.innerHTML = '<p>Loading timeline data...</p>';
+
+        try {
+            // Convert date from YYYY-MM-DD to MMDDYYYY format
+            const dateObj = new Date(date);
+            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+            const day = String(dateObj.getDate()).padStart(2, '0');
+            const year = dateObj.getFullYear();
+            const dateFormatted = `${month}${day}${year}`;
+
+            const response = await this.apiCall(`/api/videos?camera=${encodeURIComponent(camera)}&date_from=${encodeURIComponent(dateFormatted)}&date_to=${encodeURIComponent(dateFormatted)}&per_page=1000`);
+
+            if (response.videos.length === 0) {
+                timelineInfo.innerHTML = '<p>No videos found for this camera and date.</p>';
+                timelineVisualization.style.display = 'none';
+            } else {
+                this.renderTimeline(camera, date, response.videos);
+                timelineInfo.style.display = 'none';
+                timelineVisualization.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Error loading timeline:', error);
+            timelineInfo.innerHTML = '<p>Error loading timeline data.</p>';
+            timelineVisualization.style.display = 'none';
+            this.showError('Error loading timeline');
+        } finally {
+            loadButton.disabled = false;
+            loadButton.textContent = 'Load Timeline';
+        }
+    }
+
+    renderTimeline(camera, date, videos) {
+        const timelineTitle = document.getElementById('timeline-title');
+        const timelineStats = document.getElementById('timeline-stats');
+        const timelineHours = document.querySelector('.timeline-hours');
+        const timelineBar = document.getElementById('timeline-bar');
+
+        // Update title and stats
+        timelineTitle.textContent = `${camera} - ${date}`;
+        timelineStats.textContent = `${videos.length} videos`;
+
+        // Generate hour markers
+        timelineHours.innerHTML = '';
+        for (let hour = 0; hour < 24; hour++) {
+            const hourDiv = document.createElement('div');
+            hourDiv.className = 'timeline-hour';
+            hourDiv.textContent = hour.toString().padStart(2, '0') + ':00';
+            timelineHours.appendChild(hourDiv);
+        }
+
+        // Clear existing segments
+        timelineBar.innerHTML = '';
+
+        // Sort videos by timestamp
+        const sortedVideos = videos.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+        // Create timeline segments
+        sortedVideos.forEach(video => {
+            const segment = this.createTimelineSegment(video, date);
+            timelineBar.appendChild(segment);
+        });
+    }
+
+    createTimelineSegment(video, date) {
+        const segment = document.createElement('div');
+        segment.className = 'timeline-segment';
+
+        // Parse video time from start_time field (HHMMSS format)
+        const startTime = video.start_time;
+        const hours = parseInt(startTime.substring(0, 2), 10);
+        const minutes = parseInt(startTime.substring(2, 4), 10);
+        const seconds = parseInt(startTime.substring(4, 6), 10);
+
+        // Create a Date object for formatting
+        const videoTime = new Date();
+        videoTime.setHours(hours, minutes, seconds, 0);
+
+        // Calculate position (percentage of the day)
+        const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+        const leftPercent = (totalSeconds / 86400) * 100; // 86400 seconds in a day
+
+        // Assume each video is about 1 minute long for visualization
+        // In reality, you might want to get actual video duration from metadata
+        const durationSeconds = 60; // Default duration
+        const widthPercent = (durationSeconds / 86400) * 100;
+
+        // Position and size the segment
+        segment.style.left = `${leftPercent}%`;
+        segment.style.width = `${Math.max(widthPercent, 0.1)}%`; // Minimum width for visibility
+
+        // Create tooltip
+        const tooltip = document.createElement('div');
+        tooltip.className = 'segment-tooltip';
+        tooltip.textContent = `${video.camera_name} - ${this.formatTimelineTime(videoTime)}`;
+        segment.appendChild(tooltip);
+
+        // Add click handler to play video
+        segment.addEventListener('click', () => {
+            this.playTimelineVideo(video, segment);
+        });
+
+        return segment;
+    }
+
+    playTimelineVideo(video, segment) {
+        // Remove playing class from all segments
+        document.querySelectorAll('.timeline-segment').forEach(s => s.classList.remove('playing'));
+
+        // Add playing class to clicked segment
+        segment.classList.add('playing');
+
+        // Play the video using existing modal
+        this.playVideo(video.id);
+    }
+
+    formatTimelineTime(date) {
+        return date.toLocaleTimeString('en-US', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
     }
 }
 

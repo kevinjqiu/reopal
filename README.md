@@ -4,6 +4,35 @@ ReoPal is a comprehensive video management system for ReoLink security cameras, 
 
 ## Features
 
+### Camera Timeline View
+- **Timeline Visualization**: Select any camera and date to view a visual timeline of all video recordings for that day
+- **24-Hour Timeline**: Interactive timeline bar showing video recordings positioned by their start time
+- **Click-to-Play**: Click on any video segment in the timeline to immediately play that video
+- **Hover Tooltips**: Detailed information about each video segment on hover
+- **Date Navigation**: Easy date picker to browse recordings from any day
+- **Camera Selection**: Dropdown to select any camera in your system
+
+### Video Management
+- **Video Catalog**: Browse all recorded videos with pagination
+- **Advanced Search**: Search videos by filename, camera, or date range
+- **Video Streaming**: Built-in HTML5 video player with range request support
+- **Metadata Display**: View detailed information about each video file
+
+### Camera Management
+- **Camera Overview**: View all cameras and their recording statistics
+- **Per-Camera Stats**: Number of videos and last recording time for each camera
+
+### Real-time Updates
+- **Manual Refresh**: One-click refresh button to scan for new videos
+- **Auto-refresh**: Dashboard automatically updates every 5 minutes
+- **Keyboard Shortcuts**: Use Ctrl+R or F5 to refresh video metadata
+
+### User Interface
+- **Dark Theme**: Modern, GitHub-inspired dark theme
+- **Responsive Design**: Works seamlessly on desktop and mobile devices
+- **Intuitive Navigation**: Clean navigation between different views
+- **Loading States**: Visual feedback during data loading operations
+
 ### Core Functionality
 - **Video Indexing**: Scans a directory of ReoLink video files and stores their metadata in a SQLite database.
 - **Parallel Processing**: Utilizes multiple CPU cores to scan and process files quickly, making it efficient for large archives.

@@ -38,10 +38,7 @@ pub fn run_maintenance(
         println!("-- Dry Run --");
         println!("The following files would be deleted:");
         for recording in &recordings_to_delete {
-            println!(
-                "- {} ({} bytes)",
-                recording.file_path, recording.file_size
-            );
+            println!("- {} ({} bytes)", recording.file_path, recording.file_size);
         }
     } else {
         let tx = conn.unchecked_transaction()?;

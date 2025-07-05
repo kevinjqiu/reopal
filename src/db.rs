@@ -6,7 +6,7 @@ use rusqlite::{Connection, Result};
 pub fn init_db(conn: &Connection) -> Result<()> {
     // First, check if we need to migrate the table
     let mut has_old_schema = false;
-    let mut stmt = conn.prepare("PRAGMA table_info(videos)");
+    let stmt = conn.prepare("PRAGMA table_info(videos)");
     if let Ok(mut stmt) = stmt {
         let rows = stmt.query_map([], |row| {
             let column_name: String = row.get(1)?;
@@ -15,12 +15,10 @@ pub fn init_db(conn: &Connection) -> Result<()> {
         });
 
         if let Ok(rows) = rows {
-            for row in rows {
-                if let Ok((name, type_name)) = row {
-                    if (name == "start_time" || name == "end_time") && type_name == "TEXT" {
-                        has_old_schema = true;
-                        break;
-                    }
+            for (name, type_name) in rows.flatten() {
+                if (name == "start_time" || name == "end_time") && type_name == "TEXT" {
+                    has_old_schema = true;
+                    break;
                 }
             }
         }

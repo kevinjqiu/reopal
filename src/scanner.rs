@@ -5,7 +5,6 @@ use chrono_tz::US::Eastern;
 use rayon::prelude::*;
 use rusqlite::{Connection, Result};
 use std::path::{Path, PathBuf};
-use std::time::SystemTime;
 use walkdir::WalkDir;
 
 /// Scans the given directory in parallel, parses file information, and inserts it into the database.
@@ -14,7 +13,7 @@ pub fn scan_directory(dir_path: &str, conn: &Connection) -> Result<()> {
         .into_iter()
         .filter_map(|e| e.ok())
         .map(|e| e.into_path())
-        .filter(|p| p.is_file() && p.extension().map_or(false, |ext| ext == "mp4"))
+        .filter(|p| p.is_file() && p.extension().is_some_and(|ext| ext == "mp4"))
         .collect();
 
     let records: Vec<VideoRecording> = paths

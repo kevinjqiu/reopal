@@ -112,7 +112,7 @@ pub async fn list_videos(
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let total: u32 = count_stmt
         .query_row(rusqlite::params_from_iter(conditions.iter()), |row| {
-            Ok(row.get::<_, u32>(0)?)
+            row.get::<_, u32>(0)
         })
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -376,7 +376,7 @@ pub async fn manual_import(
     drop(db);
 
     // Call the scanner function to import new videos
-    match crate::scanner::scan_directory(&state.config.directory, &*state.db.lock().unwrap()) {
+    match crate::scanner::scan_directory(&state.config.directory, &state.db.lock().unwrap()) {
         Ok(()) => {
             let mut response = HashMap::new();
             response.insert("status".to_string(), "success".to_string());

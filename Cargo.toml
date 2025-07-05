@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 clap = { version = "4.5.4", features = ["derive"] }
-rusqlite = { version = "0.31.0", features = ["bundled"] }
+rusqlite = { version = "0.31.0", features = ["bundled", "chrono"] }
 walkdir = "2.5.0"
 rayon = "1.10.0"
 byte-unit = "5.1.4"
@@ -20,6 +20,7 @@ tower-http = { version = "0.5", features = ["fs", "cors", "trace"] }
 serde_json = "1.0"
 uuid = { version = "1.0", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
+chrono-tz = "0.8"
 mime_guess = "2.0"
 base64 = "0.21"
 

@@ -4,7 +4,7 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::File;
@@ -62,6 +62,12 @@ fn format_time_to_string(datetime: &DateTime<Utc>) -> String {
     datetime.format("%H%M%S").to_string()
 }
 
+/// Helper function to convert ISO date format (YYYY-MM-DD) to database format (MMDDYYYY)
+fn convert_iso_date_to_db_format(iso_date: &str) -> Option<String> {
+    let date = NaiveDate::parse_from_str(iso_date, "%Y-%m-%d").ok()?;
+    Some(date.format("%m%d%Y").to_string())
+}
+
 /// List all videos with pagination and filtering
 pub async fn list_videos(
     State(state): State<AppState>,
@@ -76,53 +82,58 @@ pub async fn list_videos(
         .lock()
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let mut query = "SELECT file_path, camera_name, date, start_time, end_time, file_size, deleted FROM videos WHERE 1=1".to_string();
+    // Build the WHERE clause for both count and data queries
+    let mut where_clause = "WHERE 1=1".to_string();
     let mut conditions = Vec::new();
 
     if let Some(camera) = &params.camera {
-        query.push_str(" AND camera_name = ?");
+        where_clause.push_str(" AND camera_name = ?");
         conditions.push(camera.clone());
     }
 
     if let Some(date_from) = &params.date_from {
-        query.push_str(" AND date >= ?");
-        conditions.push(date_from.clone());
+        if let Some(converted_date) = convert_iso_date_to_db_format(date_from) {
+            where_clause.push_str(" AND date >= ?");
+            conditions.push(converted_date);
+        }
     }
 
     if let Some(date_to) = &params.date_to {
-        query.push_str(" AND date <= ?");
-        conditions.push(date_to.clone());
+        if let Some(converted_date) = convert_iso_date_to_db_format(date_to) {
+            where_clause.push_str(" AND date < ?");
+            conditions.push(converted_date);
+        }
     }
 
-    query.push_str(" ORDER BY date DESC, start_time DESC LIMIT ? OFFSET ?");
-    conditions.push(limit.to_string());
-    conditions.push(offset.to_string());
+    // First, get the total count
+    let count_query = format!("SELECT COUNT(*) FROM videos {}", where_clause);
+    let mut count_stmt = db
+        .prepare(&count_query)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let total: u32 = count_stmt
+        .query_row(rusqlite::params_from_iter(conditions.iter()), |row| {
+            Ok(row.get::<_, u32>(0)?)
+        })
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // Build the main query
+    let mut query = format!("SELECT file_path, camera_name, date, start_time, end_time, file_size, deleted FROM videos {}", where_clause);
+    query.push_str(" ORDER BY date DESC, start_time DESC");
+
+    // Add pagination if limit is reasonable (not trying to get all records)
+    if limit > 0 && limit <= 10000 {
+        query.push_str(" LIMIT ? OFFSET ?");
+        conditions.push(limit.to_string());
+        conditions.push(offset.to_string());
+    }
 
     let mut stmt = db
         .prepare(&query)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let video_iter = stmt
         .query_map(rusqlite::params_from_iter(conditions.iter()), |row| {
-            let start_time_str: String = row.get(3)?;
-            let end_time_str: String = row.get(4)?;
-            let start_time = DateTime::parse_from_rfc3339(&start_time_str)
-                .map_err(|_| {
-                    rusqlite::Error::InvalidColumnType(
-                        3,
-                        "start_time".to_string(),
-                        rusqlite::types::Type::Text,
-                    )
-                })?
-                .with_timezone(&Utc);
-            let end_time = DateTime::parse_from_rfc3339(&end_time_str)
-                .map_err(|_| {
-                    rusqlite::Error::InvalidColumnType(
-                        4,
-                        "end_time".to_string(),
-                        rusqlite::types::Type::Text,
-                    )
-                })?
-                .with_timezone(&Utc);
+            let start_time: DateTime<Utc> = row.get(3)?;
+            let end_time: DateTime<Utc> = row.get(4)?;
 
             Ok(VideoResponse {
                 id: generate_video_id(row.get::<_, String>(0)?),
@@ -139,9 +150,6 @@ pub async fn list_videos(
 
     let videos: Result<Vec<VideoResponse>, _> = video_iter.collect();
     let videos = videos.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    // Get total count (simplified for now)
-    let total = videos.len() as u32;
 
     Ok(Json(VideosListResponse {
         videos,
@@ -168,26 +176,8 @@ pub async fn get_video(
     let file_path = decode_video_id(id);
     let video = stmt
         .query_row([&file_path], |row| {
-            let start_time_str: String = row.get(3)?;
-            let end_time_str: String = row.get(4)?;
-            let start_time = DateTime::parse_from_rfc3339(&start_time_str)
-                .map_err(|_| {
-                    rusqlite::Error::InvalidColumnType(
-                        3,
-                        "start_time".to_string(),
-                        rusqlite::types::Type::Text,
-                    )
-                })?
-                .with_timezone(&Utc);
-            let end_time = DateTime::parse_from_rfc3339(&end_time_str)
-                .map_err(|_| {
-                    rusqlite::Error::InvalidColumnType(
-                        4,
-                        "end_time".to_string(),
-                        rusqlite::types::Type::Text,
-                    )
-                })?
-                .with_timezone(&Utc);
+            let start_time: DateTime<Utc> = row.get(3)?;
+            let end_time: DateTime<Utc> = row.get(4)?;
 
             Ok(VideoResponse {
                 id: generate_video_id(row.get::<_, String>(0)?),
@@ -294,42 +284,28 @@ pub async fn search_videos(
     }
 
     if let Some(date_from) = &search_req.date_from {
-        query.push_str(" AND date >= ?");
-        conditions.push(date_from.clone());
+        if let Some(converted_date) = convert_iso_date_to_db_format(date_from) {
+            query.push_str(" AND date >= ?");
+            conditions.push(converted_date);
+        }
     }
 
     if let Some(date_to) = &search_req.date_to {
-        query.push_str(" AND date <= ?");
-        conditions.push(date_to.clone());
+        if let Some(converted_date) = convert_iso_date_to_db_format(date_to) {
+            query.push_str(" AND date < ?");
+            conditions.push(converted_date);
+        }
     }
 
-    query.push_str(" ORDER BY date DESC, start_time DESC LIMIT 100");
+    query.push_str(" ORDER BY date DESC, start_time DESC");
 
     let mut stmt = db
         .prepare(&query)
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
     let video_iter = stmt
         .query_map(rusqlite::params_from_iter(conditions.iter()), |row| {
-            let start_time_str: String = row.get(3)?;
-            let end_time_str: String = row.get(4)?;
-            let start_time = DateTime::parse_from_rfc3339(&start_time_str)
-                .map_err(|_| {
-                    rusqlite::Error::InvalidColumnType(
-                        3,
-                        "start_time".to_string(),
-                        rusqlite::types::Type::Text,
-                    )
-                })?
-                .with_timezone(&Utc);
-            let end_time = DateTime::parse_from_rfc3339(&end_time_str)
-                .map_err(|_| {
-                    rusqlite::Error::InvalidColumnType(
-                        4,
-                        "end_time".to_string(),
-                        rusqlite::types::Type::Text,
-                    )
-                })?
-                .with_timezone(&Utc);
+            let start_time: DateTime<Utc> = row.get(3)?;
+            let end_time: DateTime<Utc> = row.get(4)?;
 
             Ok(VideoResponse {
                 id: generate_video_id(row.get::<_, String>(0)?),

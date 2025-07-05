@@ -4,18 +4,69 @@ use rusqlite::{Connection, Result};
 
 /// Initializes the database and creates the 'videos' table if it doesn't exist.
 pub fn init_db(conn: &Connection) -> Result<()> {
-    conn.execute(
-        "CREATE TABLE IF NOT EXISTS videos (
-            file_path TEXT PRIMARY KEY,
-            camera_name TEXT NOT NULL,
-            date TEXT NOT NULL,
-            start_time TEXT NOT NULL,
-            end_time TEXT NOT NULL,
-            file_size INTEGER NOT NULL,
-            deleted BOOLEAN NOT NULL DEFAULT 0
-        )",
-        [],
-    )?;
+    // First, check if we need to migrate the table
+    let mut has_old_schema = false;
+    let mut stmt = conn.prepare("PRAGMA table_info(videos)");
+    if let Ok(mut stmt) = stmt {
+        let rows = stmt.query_map([], |row| {
+            let column_name: String = row.get(1)?;
+            let column_type: String = row.get(2)?;
+            Ok((column_name, column_type))
+        });
+
+        if let Ok(rows) = rows {
+            for row in rows {
+                if let Ok((name, type_name)) = row {
+                    if (name == "start_time" || name == "end_time") && type_name == "TEXT" {
+                        has_old_schema = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    if has_old_schema {
+        // Migrate existing table
+        conn.execute("ALTER TABLE videos RENAME TO videos_old", [])?;
+        conn.execute(
+            "CREATE TABLE videos (
+                file_path TEXT PRIMARY KEY,
+                camera_name TEXT NOT NULL,
+                date TEXT NOT NULL,
+                start_time DATETIME NOT NULL,
+                end_time DATETIME NOT NULL,
+                file_size INTEGER NOT NULL,
+                deleted BOOLEAN NOT NULL DEFAULT 0
+            )",
+            [],
+        )?;
+
+        // Migrate data from old table to new table
+        conn.execute(
+            "INSERT INTO videos (file_path, camera_name, date, start_time, end_time, file_size, deleted)
+             SELECT file_path, camera_name, date, datetime(start_time), datetime(end_time), file_size, deleted
+             FROM videos_old",
+            [],
+        )?;
+
+        // Drop the old table
+        conn.execute("DROP TABLE videos_old", [])?;
+    } else {
+        // Create new table with DATETIME columns
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS videos (
+                file_path TEXT PRIMARY KEY,
+                camera_name TEXT NOT NULL,
+                date TEXT NOT NULL,
+                start_time DATETIME NOT NULL,
+                end_time DATETIME NOT NULL,
+                file_size INTEGER NOT NULL,
+                deleted BOOLEAN NOT NULL DEFAULT 0
+            )",
+            [],
+        )?;
+    }
     Ok(())
 }
 
@@ -28,8 +79,8 @@ pub fn insert_record(conn: &Connection, record: &VideoRecording) -> Result<usize
             &record.file_path,
             &record.camera_name,
             &record.date,
-            &record.start_time.to_rfc3339(),
-            &record.end_time.to_rfc3339(),
+            &record.start_time,
+            &record.end_time,
             &record.file_size,
             &record.deleted,
         ),
@@ -45,26 +96,8 @@ pub fn get_all_non_deleted_recordings(conn: &Connection) -> Result<Vec<VideoReco
          ORDER BY date, start_time",
     )?;
     let record_iter = stmt.query_map([], |row| {
-        let start_time_str: String = row.get(3)?;
-        let end_time_str: String = row.get(4)?;
-        let start_time = DateTime::parse_from_rfc3339(&start_time_str)
-            .map_err(|_| {
-                rusqlite::Error::InvalidColumnType(
-                    3,
-                    "start_time".to_string(),
-                    rusqlite::types::Type::Text,
-                )
-            })?
-            .with_timezone(&Utc);
-        let end_time = DateTime::parse_from_rfc3339(&end_time_str)
-            .map_err(|_| {
-                rusqlite::Error::InvalidColumnType(
-                    4,
-                    "end_time".to_string(),
-                    rusqlite::types::Type::Text,
-                )
-            })?
-            .with_timezone(&Utc);
+        let start_time: DateTime<Utc> = row.get(3)?;
+        let end_time: DateTime<Utc> = row.get(4)?;
 
         Ok(VideoRecording {
             file_path: row.get(0)?,

@@ -1,6 +1,7 @@
 use crate::db;
 use crate::models::VideoRecording;
 use chrono::{DateTime, TimeZone, Utc};
+use chrono_tz::US::Eastern;
 use rayon::prelude::*;
 use rusqlite::{Connection, Result};
 use std::path::{Path, PathBuf};
@@ -74,7 +75,11 @@ fn parse_path(path: &Path) -> Option<VideoRecording> {
 
     // Use file creation time as end_time
     let created_time = metadata.created().ok()?;
-    let end_time: DateTime<Utc> = created_time.into();
+    // Convert SystemTime to DateTime<Utc>, then treat as Eastern time and convert to UTC
+    let utc_time: DateTime<Utc> = created_time.into();
+    let naive_time = utc_time.naive_utc();
+    let eastern_time = Eastern.from_local_datetime(&naive_time).single()?;
+    let end_time = eastern_time.with_timezone(&Utc);
 
     // Calculate start_time as end_time minus duration
     let start_time = end_time - chrono::Duration::seconds(duration_seconds as i64);

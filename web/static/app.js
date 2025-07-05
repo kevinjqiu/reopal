@@ -204,6 +204,13 @@ class ReoPalApp {
             date_to: document.getElementById('date-to').value
         };
 
+        // Add 1 day to date_to to make it exclusive
+        if (this.currentFilters.date_to) {
+            const dateToObj = new Date(this.currentFilters.date_to);
+            dateToObj.setDate(dateToObj.getDate() + 1);
+            this.currentFilters.date_to = dateToObj.toISOString().split('T')[0];
+        }
+
         // Remove empty filters
         Object.keys(this.currentFilters).forEach(key => {
             if (!this.currentFilters[key]) {
@@ -555,14 +562,13 @@ class ReoPalApp {
         timelineInfo.innerHTML = '<p>Loading timeline data...</p>';
 
         try {
-            // Convert date from YYYY-MM-DD to MMDDYYYY format
-            const dateObj = new Date(date);
-            const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const day = String(dateObj.getDate()).padStart(2, '0');
-            const year = dateObj.getFullYear();
-            const dateFormatted = `${month}${day}${year}`;
+            // Date is already in YYYY-MM-DD format which is what the API expects
+            // Add 1 day to date_to to make it exclusive
+            const dateToObj = new Date(date);
+            dateToObj.setDate(dateToObj.getDate() + 1);
+            const dateTo = dateToObj.toISOString().split('T')[0];
 
-            const response = await this.apiCall(`/api/videos?camera=${encodeURIComponent(camera)}&date_from=${encodeURIComponent(dateFormatted)}&date_to=${encodeURIComponent(dateFormatted)}&per_page=1000`);
+            const response = await this.apiCall(`/api/videos?camera=${encodeURIComponent(camera)}&date_from=${encodeURIComponent(date)}&date_to=${encodeURIComponent(dateTo)}&limit=10000`);
 
             if (response.videos.length === 0) {
                 timelineInfo.innerHTML = '<p>No videos found for this camera and date.</p>';
